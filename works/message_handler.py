@@ -3,24 +3,32 @@
 import json
 import sqlite3
 import time
-from typing import Generator
+from typing import Generator, Optional
 
 import requests
 
+from works.auth import HeaderManager  # Import from auth.py
 from works.database import initialize_db  # Import from database.py
 
 
 def receive_messages(
-    headers: dict, domainId: str, userNo: str, db_path: str = "received_messages.db"
+    header_manager: HeaderManager,
+    domainId: str,
+    userNo: str,
+    db_path: str = "received_messages.db",
+    polling_interval: int = 5,  # ポーリング間隔（秒）
+    stop_condition: Optional[str] = None,  # 停止条件
 ) -> Generator[dict, None, None]:
     """
     Receive messages from the server and yield them for external handling.
 
     Args:
-        headers (dict): The headers to be used in the HTTP request.
+        header_manager (HeaderManager): The header manager to be used in the HTTP request.
         domainId (str): The domain ID of the user.
         userNo (str): The user number.
         db_path (str): The path to the SQLite database.
+        polling_interval (int): The interval between polling requests in seconds.
+        stop_condition (Optional[str]): A condition to stop polling (e.g., a specific message).
 
     Yields:
         dict: The received message data.
@@ -39,17 +47,27 @@ def receive_messages(
         "isPin": True,
         "requestAgain": False,
     }
-    try:
-        while True:
+
+    while True:
+        try:
+            headers = header_manager.headers  # ヘッダーを取得
             response = requests.post(url, json=payload, headers=headers, timeout=30)
             if response.status_code == 200:
                 messages = response.json().get("result", [])
                 for message in messages:
                     yield message  # Yield messages one by one
+
+                    # 停止条件のチェック
+                    if stop_condition and message.get("content") == stop_condition:
+                        print(f"Stopping polling due to condition: {stop_condition}")
+                        return
             else:
-                return f"Error: Status code {response.status_code}"
-    except Exception as e:
-        return f"Error: {str(e)}"
+                print(f"Error: Status code {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {str(e)}")
+            time.sleep(polling_interval * 2)  # エラー時は待機時間を倍増
+
+        time.sleep(polling_interval)  # ポーリング間隔を設ける
 
 
 def handle_messages(messages: dict, db_path: str = "received_messages.db") -> str:
@@ -79,7 +97,7 @@ def handle_messages(messages: dict, db_path: str = "received_messages.db") -> st
             "SELECT COUNT(*) FROM received_messages WHERE message_no=?", (message_no,)
         )
         if cursor.fetchone()[0] > 0:
-            continue
+            continue  # 重複メッセージはスキップ
 
         try:
             cursor.execute(
