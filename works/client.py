@@ -1,5 +1,6 @@
 # works/client.py
 
+from pathlib import Path
 from typing import Generator, Optional
 
 from works.auth import AuthManager, HeaderManager
@@ -8,8 +9,23 @@ from works.message_sender import MessageSender  # Import MessageSender class
 
 
 class Works:
-    def __init__(self, input_id: str, password: str):
+    def __init__(
+        self, input_id: str, password: str, cookie_path: Optional[Path] = None
+    ) -> None:
+        """
+        Initialize Works client.
+
+        Args:
+            input_id (str): User ID for login
+            password (str): Password for login
+            cookie_path (Optional[Path]): Path to save/load cookies. Defaults to None.
+        """
+        # Create AuthManager with cookie path
         self.auth_manager = AuthManager(input_id, password)
+        if cookie_path:
+            self.auth_manager.cookie_path = cookie_path
+
+        # Initialize HeaderManager
         self.header_manager = HeaderManager(self.auth_manager)
         self.headers = self.header_manager.headers
         self.message_sender = MessageSender(

@@ -1,44 +1,61 @@
 # example.py
 
 import asyncio
+import os
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from works.client import Works  # Import Works class
+
+# Load environment variables
+load_dotenv()
 
 # Set the appropriate event loop policy for Windows platform
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-# Credentials
-input_id = "yusei@ncorp"
-password = "n@20080627"
-domainId = 400512308  # Works domain ID
-userNo = 110002509504044  # Works bot account ID
-tempMessageId = 733428260  # Temporary message ID (set as needed)
+# Credentials from environment variables
+input_id = os.getenv("INPUT_ID")
+password = os.getenv("PASSWORD")
+domain_id = int(os.getenv("DOMAIN_ID"))  # Convert to int
+user_no = int(os.getenv("USER_NO"))  # Convert to int
+temp_message_id = int(os.getenv("TEMP_MESSAGE_ID"))  # Convert to int
+
+# Create cookie directory if it doesn't exist
+COOKIE_DIR = Path("data")
+COOKIE_DIR.mkdir(exist_ok=True)
 
 # Create an instance of the Works class
-client = Works(input_id, password)
+client = Works(
+    input_id=input_id,
+    password=password,
+    cookie_path=COOKIE_DIR / "cookie.json",  # Specify cookie file path
+)
 
 
 # New function to handle sending all messages
-def send_all_messages(client, channel_no, domainId, userNo, tempMessageId):
+def send_all_messages(
+    client, channel_no, domain_id: int, user_no: int, temp_message_id: int
+):
     """Send all types of messages in response to !sendall command."""
     # Send a normal message
     response = client.send_message(
         channel_no,
         "This is a test message from !sendall command.",
-        domain_id=domainId,
-        user_no=userNo,
-        temp_message_id=tempMessageId,
+        domain_id=domain_id,
+        user_no=user_no,
+        temp_message_id=temp_message_id,
     )
     print(response)
 
     # Send a sticker
     sticker_response = client.send_sticker(
         group_id=channel_no,
-        domain_id=domainId,
-        user_no=userNo,
-        temp_message_id=tempMessageId,
+        domain_id=domain_id,
+        user_no=user_no,
+        temp_message_id=temp_message_id,
         stk_type="line",
         package_id="18832978",  # Package ID
         sticker_id="485404830",  # Use sticker_id
@@ -50,9 +67,9 @@ def send_all_messages(client, channel_no, domainId, userNo, tempMessageId):
         channel_no,
         message="This is a custom log message.",
         button_message="Click Me",
-        domain_id=domainId,
-        user_no=userNo,
-        temp_message_id=tempMessageId,
+        domain_id=domain_id,
+        user_no=user_no,
+        temp_message_id=temp_message_id,
     )
     print(log_response)
 
@@ -60,9 +77,9 @@ def send_all_messages(client, channel_no, domainId, userNo, tempMessageId):
     add_log_response = client.send_add_log(
         channel_no,
         input_id,
-        domainId,
-        userNo,
-        tempMessageId,
+        domain_id,
+        user_no,
+        temp_message_id,
         user_name="Nezumi-Works - Free Multi-Function BOT",
         desc="Nezumi-Project2024",
         lang="ja",
@@ -72,7 +89,7 @@ def send_all_messages(client, channel_no, domainId, userNo, tempMessageId):
 
 
 # Message receiving process
-for message in client.receive_messages(domainId, userNo):
+for message in client.receive_messages(domain_id, user_no):
     # Respond if the message content is "!test"
     content = message.get("content", "")
     channel_no = message.get("channelNo")
@@ -82,9 +99,9 @@ for message in client.receive_messages(domainId, userNo):
             response = client.send_message(
                 channel_no,
                 "Hi!!",  # Response message
-                domain_id=domainId,
-                user_no=userNo,
-                temp_message_id=tempMessageId,
+                domain_id=domain_id,
+                user_no=user_no,
+                temp_message_id=temp_message_id,
             )
             print(response)  # Display the response from send_message
         except Exception as e:
@@ -93,6 +110,6 @@ for message in client.receive_messages(domainId, userNo):
     # Call all sending methods
     if content == "!sendall":
         try:
-            send_all_messages(client, channel_no, domainId, userNo, tempMessageId)
+            send_all_messages(client, channel_no, domain_id, user_no, temp_message_id)
         except Exception as e:
             print(f"Failed to send messages for !sendall: {e}")

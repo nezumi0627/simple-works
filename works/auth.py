@@ -1,6 +1,7 @@
 # works/auth.py
 
 import json
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -10,14 +11,50 @@ class AuthManager:
     def __init__(self, input_id: str, password: str):
         self.input_id = input_id
         self.password = password
+        self.cookie_path = Path("cookie.json")
+
+    def save_cookies(self, cookies_json: str) -> None:
+        """
+        Save cookies to a JSON file.
+
+        Args:
+            cookies_json (str): JSON string of cookies to save
+        """
+        try:
+            with open(self.cookie_path, "w", encoding="utf-8") as f:
+                f.write(cookies_json)
+        except IOError as e:
+            print(f"Failed to save cookies: {e}")
+
+    def load_cookies(self) -> Optional[str]:
+        """
+        Load cookies from the JSON file if it exists.
+
+        Returns:
+            Optional[str]: JSON string of cookies if file exists, None otherwise
+        """
+        try:
+            if self.cookie_path.exists():
+                with open(self.cookie_path, "r", encoding="utf-8") as f:
+                    return f.read()
+            return None
+        except IOError as e:
+            print(f"Failed to load cookies: {e}")
+            return None
 
     def login(self) -> Optional[str]:
         """
         Log in to the service and return cookies as a JSON string.
+        Tries to load existing cookies first, if not available performs login.
 
         Returns:
             Optional[str]: JSON string of cookies if login is successful, None otherwise.
         """
+        # Try to load existing cookies first
+        existing_cookies = self.load_cookies()
+        if existing_cookies:
+            return existing_cookies
+
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Referer": f"https://auth.worksmobile.com/login/login?accessUrl=https://talk.worksmobile.com/&loginParam={self.input_id}",
@@ -49,7 +86,10 @@ class AuthManager:
             )
             response.raise_for_status()
             cookies_dict = {cookie.name: cookie.value for cookie in response.cookies}
-            return json.dumps(cookies_dict, indent=4, ensure_ascii=False)
+            cookies_json = json.dumps(cookies_dict, indent=4, ensure_ascii=False)
+            # Save cookies after successful login
+            self.save_cookies(cookies_json)
+            return cookies_json
         except requests.exceptions.RequestException as e:
             return f"Error: {str(e)}"
 
