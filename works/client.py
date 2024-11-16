@@ -119,7 +119,7 @@ class Works:
         domain_id: str,
         user_no: str,
         db_path: str = "received_messages.db",
-        polling_interval: int = 5,
+        polling_interval: Optional[int] = 5,  # Default polling interval set to 5
         stop_condition: Optional[str] = None,
     ) -> Generator[dict, None, None]:
         return receive_messages(

@@ -27,13 +27,6 @@ temp_message_id = int(os.getenv("TEMP_MESSAGE_ID"))  # Convert to int
 COOKIE_DIR = Path("data")
 COOKIE_DIR.mkdir(exist_ok=True)
 
-# Create an instance of the Works class
-client = Works(
-    input_id=input_id,
-    password=password,
-    cookie_path=COOKIE_DIR / "cookie.json",  # Specify cookie file path
-)
-
 
 # New function to handle sending all messages
 def send_all_messages(
@@ -88,28 +81,43 @@ def send_all_messages(
     print(add_log_response)
 
 
-# Message receiving process
-for message in client.receive_messages(domain_id, user_no):
-    # Respond if the message content is "!test"
-    content = message.get("content", "")
-    channel_no = message.get("channelNo")
+def main():
+    """Main function to run the bot."""
+    # Create an instance of the Works class
+    client = Works(
+        input_id=input_id,
+        password=password,
+        cookie_path=COOKIE_DIR / "cookie.json",  # Specify cookie file path
+    )
 
-    if content == "!test":
-        try:
-            response = client.send_message(
-                channel_no,
-                "Hi!!",  # Response message
-                domain_id=domain_id,
-                user_no=user_no,
-                temp_message_id=temp_message_id,
-            )
-            print(response)  # Display the response from send_message
-        except Exception as e:
-            print(f"Failed to send response to !test: {e}")
+    # Message receiving process
+    for message in client.receive_messages(domain_id, user_no):
+        # Respond if the message content is "!test"
+        content = message.get("content", "")
+        channel_no = message.get("channelNo")
 
-    # Call all sending methods
-    if content == "!sendall":
-        try:
-            send_all_messages(client, channel_no, domain_id, user_no, temp_message_id)
-        except Exception as e:
-            print(f"Failed to send messages for !sendall: {e}")
+        if content == "!test":
+            try:
+                response = client.send_message(
+                    channel_no,
+                    "Hi!!",  # Response message
+                    domain_id=domain_id,
+                    user_no=user_no,
+                    temp_message_id=temp_message_id,
+                )
+                print(response)  # Display the response from send_message
+            except Exception as e:
+                print(f"Failed to send response to !test: {e}")
+
+        # Call all sending methods
+        if content == "!sendall":
+            try:
+                send_all_messages(
+                    client, channel_no, domain_id, user_no, temp_message_id
+                )
+            except Exception as e:
+                print(f"Failed to send messages for !sendall: {e}")
+
+
+if __name__ == "__main__":
+    main()
