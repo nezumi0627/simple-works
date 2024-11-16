@@ -87,7 +87,7 @@ def main():
     client = Works(
         input_id=input_id,
         password=password,
-        cookie_path=COOKIE_DIR / "cookie.json",  # Specify cookie file path
+        cookie_path=COOKIE_DIR / "./data/cookie.json",  # Specify cookie file path
     )
 
     # Message receiving process

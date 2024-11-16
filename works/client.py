@@ -23,14 +23,14 @@ class Works:
         # Create AuthManager with cookie path
         self.auth_manager = AuthManager(input_id, password)
         if cookie_path:
-            self.auth_manager.cookie_path = cookie_path
+            # Ensure parent directory exists and resolve the path properly
+            cookie_path.parent.mkdir(parents=True, exist_ok=True)
+            self.auth_manager.cookie_path = cookie_path.resolve()
 
         # Initialize HeaderManager
         self.header_manager = HeaderManager(self.auth_manager)
         self.headers = self.header_manager.headers
-        self.message_sender = MessageSender(
-            self.header_manager
-        )  # Initialize MessageSender
+        self.message_sender = MessageSender(self.header_manager)
 
     def send_message(
         self,
