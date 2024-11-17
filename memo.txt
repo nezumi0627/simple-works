@@ -1,0 +1,15 @@
+nezumi0627 の私的めも
+
+https://talk.worksmobile.com/p/oneapp/client/chat/getReadInfos
+
+payload={"channelNo":296519783,"serviceId":"works"}
+lastが最終既読臭い
+join Falseが退会済みユーザーかも
+
+{"projectName":"works-notify-web","projectVersion":"4.0.0","body":"bee.js","host":"script","logLevel":"info","logType":"json","message":"mqtt.notification","phase":"real","contactNo":110002509504044,"domainId":400512308,"product":"LINE_WORKS","service":"message","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36","payload":{"aBadge":0,"badge":5,"botInfo":"","cBadge":5,"chNo":296519335,"chPhotoPath":"/clover/AABLjQ,Q2WMAAZ8vMZ91TA","chTitle":"ねずみにうむ","chType":6,"createTime":1731666638303,"domain_id":400512308,"extras":"","fromPhotoHash":"43658cdd15960608c17189f978cf92db","fromUserNo":913000043047576,"hBadge":0,"loc-args0":"ねずみ","loc-args1":"(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄\n(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄\n(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄\n(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄\n(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o🪄(o🪄✪ω✪｡)o","loc-key":"REV_MSG","mBadge":0,"messageNo":323,"nType":1,"notification-id":"msg.AAAAAAAAAACnhqwRAAAAAEMBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","ocn":4,"sType":2,"token":"110002509504044","userNo":1100025095040
+
+syncUserみたいな描画用(？)リクエストだと103文字しか取得出来ない
+_store(通知系？)でのloc-args1に入ってるのだと897文字まで取得
+どちらにせよ全て取得が見つからない
+worksが1度におくれる文字数は 1823
+
