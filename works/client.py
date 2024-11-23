@@ -23,9 +23,24 @@ class Works:
         # Create AuthManager with cookie path
         self.auth_manager = AuthManager(input_id, password)
         if cookie_path:
-            # Ensure parent directory exists and resolve the path properly
+            # Generate unique cookie file name based on input_id
+            cookie_file = f"cookie_{input_id}.json"
+            # Ensure cookie file is saved in the data directory
+            cookie_path = cookie_path / cookie_file
+            # Ensure directory exists and resolve the path properly
             cookie_path.parent.mkdir(parents=True, exist_ok=True)
             self.auth_manager.cookie_path = cookie_path.resolve()
+
+            # Clean up any old cookie files in root directory
+            old_cookie = Path(f"cookie_{input_id}.json")
+            if old_cookie.exists():
+                try:
+                    old_cookie.unlink()
+                    print(f"Cleaned up old cookie file: {old_cookie}")
+                except Exception as e:
+                    print(
+                        f"Warning: Could not remove old cookie file {old_cookie}: {e}"
+                    )
 
         # Initialize HeaderManager
         self.header_manager = HeaderManager(self.auth_manager)

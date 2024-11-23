@@ -6,3 +6,5 @@ __pycache__/
 *.db
 a.txt
 data/
+cookie_*.json
+test_space/
