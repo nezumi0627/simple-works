@@ -1,114 +1,211 @@
+"""Multi-account bot example.
+
+このモジュールは、asyncioタスクを使用して複数のWorksアカウントを
+同時に処理できるマルチアカウントボットシステムを実装します。
+"""
+
 import asyncio
+import logging
 import os
-import sys
-import threading
+from dataclasses import dataclass
 from pathlib import Path
-
-# Add parent directory to Python path for imports
-sys.path.append(str(Path(__file__).parent.parent))
-
-from typing import Dict
+from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 
 from works.client import Works
+from works.message_handler import MessageResult
 
-# Load environment variables
-load_dotenv()
+# Configure logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
-# Set the appropriate event loop policy for Windows platform
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# Load environment variables from examples/.env
+ENV_PATH = Path(__file__).parent / ".env"
+load_dotenv(ENV_PATH)
 
 # Create cookie directory if it doesn't exist
 COOKIE_DIR = Path("data")
 COOKIE_DIR.mkdir(exist_ok=True)
 
-# Account configurations
-ACCOUNTS = [
-    {
-        "input_id": "example@1234",
-        "password": "test@1234",
-        "response": "Hi !! I'm multi-works :)",
-    },
-    {
-        "input_id": "example2@1234",
-        "password": "test@1234",
-        "response": "Hi !! I'm multi-works 2 :)",
-    },
-]
 
-# Domain and user settings from environment variables
-domain_id = int(os.getenv("DOMAIN_ID", "0"))
-user_no = int(os.getenv("USER_NO", "0"))
-temp_message_id = int(os.getenv("TEMP_MESSAGE_ID", "0"))
+@dataclass
+class AccountConfig:
+    """アカウント設定を保持するデータクラス."""
 
-# Store client instances
-clients: Dict[str, Works] = {}
+    input_id: str
+    password: str
+    response: str
 
 
-def handle_messages(account: dict) -> None:
-    """Handle messages for a specific account."""
-    try:
-        client = Works(
-            input_id=account["input_id"],
-            password=account["password"],
-            cookie_path=COOKIE_DIR,
+def load_account_configs() -> List[AccountConfig]:
+    """環境変数からアカウント設定を読み込む.
+
+    Returns:
+        List[AccountConfig]: アカウント設定のリスト
+    """
+    accounts = []
+    account_num = 1
+
+    while True:
+        input_id = os.getenv(f"WORKS_ID_{account_num}")
+        password = os.getenv(f"WORKS_PASSWORD_{account_num}")
+        response = os.getenv(f"WORKS_RESPONSE_{account_num}")
+
+        if not all([input_id, password, response]):
+            break
+
+        accounts.append(
+            AccountConfig(
+                input_id=str(input_id),
+                password=str(password),
+                response=str(response),
+            )
         )
-        clients[account["input_id"]] = client
+        account_num += 1
 
-        print(f"Started listening for messages on account: {account['input_id']}")
-
-        for message in client.receive_messages(domain_id, user_no):
-            content = message.get("content", "")
-            channel_no = message.get("channelNo")
-
-            if content == "!test":
-                try:
-                    response = client.send_message(
-                        channel_no,
-                        account["response"],
-                        domain_id=domain_id,
-                        user_no=user_no,
-                        temp_message_id=temp_message_id,
-                    )
-                    print(f"Response from {account['input_id']}: {response}")
-                except Exception as e:
-                    print(f"Error sending message for {account['input_id']}: {e}")
-
-    except Exception as e:
-        print(f"Error in message handler for {account['input_id']}: {e}")
+    return accounts
 
 
-def main():
-    """Main function to run multiple bot instances."""
-    threads = []
+class WorksBot:
+    """単一アカウントのメッセージ処理を行うボットクラス."""
 
-    # Create and start a thread for each account
-    for account in ACCOUNTS:
-        thread = threading.Thread(
-            target=handle_messages, args=(account,), name=f"Bot-{account['input_id']}"
-        )
-        thread.daemon = True  # Set as daemon thread
-        threads.append(thread)
-        thread.start()
+    def __init__(self) -> None:
+        """環境設定でWorksBotを初期化する."""
+        self.domain_id = os.getenv("DOMAIN_ID", "0")
+        self.user_no = os.getenv("USER_NO", "0")
+        self.temp_message_id = os.getenv("TEMP_MESSAGE_ID", "0")
+        self.clients: Dict[str, Works] = {}
 
-    try:
-        # Keep the main thread alive
+    async def handle_messages(self, account: AccountConfig) -> None:
+        """特定のアカウントのメッセージを処理する.
+
+        Args:
+            account: 認証情報とレスポンスメッセージを含むアカウント設定
+        """
+        try:
+            client = Works(
+                input_id=account.input_id,
+                password=account.password,
+                cookie_path=COOKIE_DIR,
+            )
+            self.clients[account.input_id] = client
+
+            logger.info(f"Start {account.input_id} message reception")
+
+            async for result, message in client.receive_messages(
+                self.domain_id, self.user_no
+            ):
+                await self._process_message(result, message, client, account)
+
+        except Exception as e:
+            logger.error(
+                f"Error in message handler for {account.input_id}: {e}"
+            )
+
+    async def _process_message(
+        self,
+        result: MessageResult,
+        message: Optional[Dict],
+        client: Works,
+        account: AccountConfig,
+    ) -> None:
+        """個々のメッセージを処理し、必要に応じて応答を送信する.
+
+        Args:
+            result: メッセージ処理結果
+            message: Worksからのメッセージデータ
+            client: Worksクライアントインスタンス
+            account: アカウント設定
+        """
+        if not result.success or not message:
+            logger.error(f"Message processing failed: {result.message}")
+            return
+
+        content = message.get("content", "")
+        channel_no = message.get("channelNo")
+
+        if content == "!test" and channel_no is not None:
+            try:
+                response = await client.async_send_message(
+                    str(channel_no),
+                    account.response,
+                    self.domain_id,
+                    self.user_no,
+                    self.temp_message_id,
+                )
+                logger.info(f"Response from {account.input_id}: {response}")
+            except Exception as e:
+                logger.error(
+                    f"Error sending message for {account.input_id}: {e}"
+                )
+
+
+class BotManager:
+    """複数のボットインスタンスをasyncioタスクとして管理する."""
+
+    def __init__(self, accounts: List[AccountConfig]):
+        """アカウント設定でBotManagerを初期化する.
+
+        Args:
+            accounts: アカウント設定のリスト
+        """
+        self.accounts = accounts
+        self.works_bot = WorksBot()
+        self.tasks: List[asyncio.Task] = []
+
+    async def start(self) -> None:
+        """ボットタスクを開始し、メインループを維持する."""
+        await self._start_bot_tasks()
+
+        try:
+            await self._maintain_main_loop()
+        except KeyboardInterrupt:
+            logger.info("\nShutting down bots...")
+            for task in self.tasks:
+                task.cancel()
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+
+    async def _start_bot_tasks(self) -> None:
+        """各アカウントのタスクを作成して開始する."""
+        for account in self.accounts:
+            task = asyncio.create_task(
+                self.works_bot.handle_messages(account),
+                name=f"Bot-{account.input_id}",
+            )
+            self.tasks.append(task)
+
+    async def _maintain_main_loop(self) -> None:
+        """メインループを維持し、タスクのステータスを監視する."""
         while True:
-            # Check if all threads are alive
-            alive_threads = [t for t in threads if t.is_alive()]
-            if not alive_threads:
-                print("All bot threads have stopped. Exiting...")
+            done_tasks = [t for t in self.tasks if t.done()]
+            for task in done_tasks:
+                if task.exception():
+                    logger.error(
+                        f"Task {task.get_name()} failed: {task.exception()}"
+                    )
+                self.tasks.remove(task)
+
+            if not self.tasks:
+                logger.info("All bot tasks have stopped. Exiting...")
                 break
 
-            # Sleep to prevent CPU overuse
-            asyncio.get_event_loop().run_until_complete(asyncio.sleep(1))
+            await asyncio.sleep(1)
 
-    except KeyboardInterrupt:
-        print("\nShutting down bots...")
-        sys.exit(0)
+
+async def main() -> None:
+    """ボットシステムを初期化して実行するメイン関数."""
+    accounts = load_account_configs()
+    if not accounts:
+        logger.error("No account configurations found in .env file")
+        return
+
+    bot_manager = BotManager(accounts)
+    await bot_manager.start()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

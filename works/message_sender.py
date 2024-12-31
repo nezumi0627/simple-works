@@ -1,14 +1,25 @@
-# works/message_sender.py
+"""LINE WORKS メッセージ送信モジュール."""
 
 import json
+from typing import Dict
 
+import aiohttp
 import requests
+from aiohttp import ClientTimeout
 
-from works.auth import HeaderManager  # Import from auth.py
+from works.auth import HeaderManager
+from works.constants import ApiEndpoint, MessageType, ServiceId
 
 
 class MessageSender:
-    def __init__(self, header_manager: HeaderManager):
+    """メッセージ送信を管理するクラス."""
+
+    def __init__(self, header_manager: HeaderManager) -> None:
+        """MessageSenderを初期化する.
+
+        Args:
+            header_manager (HeaderManager):認証済みヘッダー情報を管理する
+        """
         self.header_manager = header_manager
         self.headers = self.header_manager.headers
 
@@ -19,75 +30,61 @@ class MessageSender:
         domain_id: str,
         user_no: str,
         temp_message_id: str,
-    ) -> str:
-        """Send a message to a specified group."""
-        url = "https://talk.worksmobile.com/p/oneapp/client/chat/sendMessage"
+    ) -> Dict[str, str]:
+        """指定したグループにメッセージを送信する（同期版）."""
         payload = self._create_payload(
             group_id, message, domain_id, user_no, temp_message_id
         )
-        return self._post_request(url, payload)
+        return self._post_request(ApiEndpoint.SEND_MESSAGE, payload)
 
-    def _create_payload(
+    async def async_send_message(
         self,
         group_id: str,
         message: str,
         domain_id: str,
         user_no: str,
         temp_message_id: str,
-    ) -> dict:
-        """Create the payload for sending a message."""
-        return {
-            "serviceId": "works",
-            "channelNo": group_id,
-            "tempMessageId": temp_message_id,
-            "caller": {"domainId": domain_id, "userNo": user_no},
-            "extras": "",
-            "content": message,
-            "type": 1,
-        }
+    ) -> Dict[str, str]:
+        """指定したグループにメッセージを送信する（非同期版）."""
+        payload = self._create_payload(
+            group_id, message, domain_id, user_no, temp_message_id
+        )
+        return await self._async_post_request(
+            ApiEndpoint.SEND_MESSAGE, payload
+        )
 
-    def _post_request(self, url: str, payload: dict) -> str:
-        """Send a POST request and return the response."""
-        response = requests.post(url, headers=self.headers, json=payload)
-        if response.status_code == 200:
-            return "Message sent successfully!"
-        else:
-            return f"Error: Message sending failed. Status code: {response.status_code}"
-
-    def send_sticker(
+    async def async_send_sticker(
         self,
         group_id: str,
         domain_id: str,
         user_no: str,
         temp_message_id: str,
-        stk_type: str = "line",  # Type of the sticker
-        package_id: str = "18832978",  # Package ID
-        stk_id: str = "485404830",  # Sticker ID
-        stk_opt: str = "",  # Sticker options
-    ) -> str:
-        """Send a sticker to a specified group."""
-        url = "https://talk.worksmobile.com/p/oneapp/client/chat/sendMessage"
+        stk_type: str = "line",
+        package_id: str = "18832978",
+        sticker_id: str = "485404830",
+        stk_opt: str = "",
+    ) -> Dict[str, str]:
+        """スタンプを送信する（非同期版）."""
         extras = {
             "stkType": stk_type,
             "pkgVer": "",
             "pkgId": package_id,
-            "stkId": stk_id,
+            "stkId": sticker_id,
             "stkOpt": stk_opt,
         }
         payload = {
-            "serviceId": "works",
+            "serviceId": ServiceId.WORKS.value,
             "channelNo": group_id,
             "tempMessageId": temp_message_id,
             "caller": {"domainId": domain_id, "userNo": user_no},
             "extras": json.dumps(extras),
-            "type": 18,  # Type for sending a sticker
+            "type": MessageType.STICKER.value,
         }
-        response = requests.post(url, headers=self.headers, json=payload)
-        if response.status_code == 200:
-            return "Sticker sent successfully!"
-        return f"Error: Sticker sending failed. Status code: {response.status_code}"
+        return await self._async_post_request(
+            ApiEndpoint.SEND_MESSAGE, payload
+        )
 
-    def send_custom_log(
+    async def async_send_custom_log(
         self,
         group_id: str,
         message: str,
@@ -96,28 +93,26 @@ class MessageSender:
         user_no: str,
         temp_message_id: str,
         button_url: str = "https://github.com/nezumi0627",
-    ) -> str:
-        """Send a custom log message with a button to a specified group."""
-        url = "https://talk.worksmobile.com/p/oneapp/client/chat/sendMessage"
+    ) -> Dict[str, str]:
+        """カスタムログメッセージを送信する（非同期版）."""
         extras = {
-            "text": button_message,
-            "url": button_url,
+            "linkUrl": button_url,
+            "linkText": button_message,
         }
         payload = {
-            "serviceId": "works",
+            "serviceId": ServiceId.WORKS.value,
             "channelNo": group_id,
             "tempMessageId": temp_message_id,
             "caller": {"domainId": domain_id, "userNo": user_no},
             "extras": json.dumps(extras),
             "content": message,
-            "type": 30,  # Type for custom log with button
+            "type": MessageType.CUSTOM_MESSAGE.value,
         }
-        response = requests.post(url, headers=self.headers, json=payload)
-        if response.status_code == 200:
-            return "Custom log message sent successfully!"
-        return f"Error: Custom log message sending failed. Status code: {response.status_code}"
+        return await self._async_post_request(
+            ApiEndpoint.SEND_MESSAGE, payload
+        )
 
-    def send_add_log(
+    async def async_send_add_log(
         self,
         group_id: str,
         input_id: str,
@@ -128,26 +123,125 @@ class MessageSender:
         desc: str = "Nezumi-Project2024",
         lang: str = "ja",
         photo_hash: str = "779911d9ab14b9caaec3fd44197a1adc",
-    ) -> str:
-        """Send an addition log to a specified group."""
-        url = "https://talk.worksmobile.com/p/oneapp/client/chat/sendMessage"
+    ) -> Dict[str, str]:
+        """追加ログメッセージを送信する（非同期版）."""
+        extras = {
+            "inputId": input_id,
+            "userName": user_name,
+            "desc": desc,
+            "lang": lang,
+            "photoHash": photo_hash,
+        }
         payload = {
-            "serviceId": "works",
+            "serviceId": ServiceId.WORKS.value,
             "channelNo": group_id,
             "tempMessageId": temp_message_id,
             "caller": {"domainId": domain_id, "userNo": user_no},
-            "extras": {
-                "account": input_id,
-                "userName": user_name,
-                "desc": desc,
-                "lang": lang,
-                "photoHash": photo_hash,
-            },
-            "type": 26,
+            "extras": json.dumps(extras),
+            "type": MessageType.USER_INFO.value,
         }
-        payload["extras"] = json.dumps(payload["extras"])
-        response = requests.post(url, headers=self.headers, json=payload)
-        if response.status_code == 200:
-            return "User addition log sent successfully!"
-        else:
-            return f"Error: User addition log sending failed. Status code: {response.status_code}"
+        return await self._async_post_request(
+            ApiEndpoint.SEND_MESSAGE, payload
+        )
+
+    def _create_payload(
+        self,
+        group_id: str,
+        message: str,
+        domain_id: str,
+        user_no: str,
+        temp_message_id: str,
+    ) -> Dict:
+        """メッセージ送信用のペイロードを作成する.
+
+        Args:
+            group_id (str): 送信先グループID
+            message (str): 送信するメッセージ
+            domain_id (str): ドメインID
+            user_no (str): ユーザー番号
+            temp_message_id (str): 一時メッセージID
+
+        Returns:
+            Dict: 送信用ペイロード
+        """
+        return {
+            "serviceId": ServiceId.WORKS.value,
+            "channelNo": group_id,
+            "tempMessageId": temp_message_id,
+            "caller": {"domainId": domain_id, "userNo": user_no},
+            "extras": "",
+            "content": message,
+            "type": MessageType.TEXT.value,
+        }
+
+    def _post_request(self, endpoint: str, payload: Dict) -> Dict[str, str]:
+        """POSTリクエストを送信する（同期版）.
+
+        Args:
+            endpoint (str): APIエンドポイント
+            payload (Dict): 送信するデータ
+
+        Returns:
+            Dict[str, str]: レスポンス結果
+        """
+        try:
+            response = requests.post(
+                f"{ApiEndpoint.BASE_URL}{endpoint}",
+                headers=self.headers,
+                json=payload,
+                timeout=30,
+            )
+            return {
+                "success": str(response.status_code == 200),
+                "status_code": str(response.status_code),
+                "message": (
+                    "Success"
+                    if response.status_code == 200
+                    else f"Failed with status code: {response.status_code}"
+                ),
+            }
+        except Exception as e:
+            return {
+                "success": "false",
+                "status_code": "500",
+                "message": f"Request failed: {str(e)}",
+            }
+
+    async def _async_post_request(
+        self, endpoint: str, payload: Dict
+    ) -> Dict[str, str]:
+        """POSTリクエストを送信する（非同期版）.
+
+        Args:
+            endpoint (str): APIエンドポイント
+            payload (Dict): 送信するデータ
+
+        Returns:
+            Dict[str, str]: レスポンス結果
+        """
+        timeout = ClientTimeout(total=30)
+        try:
+            async with (
+                aiohttp.ClientSession(timeout=timeout) as session,
+                session.post(
+                    f"{ApiEndpoint.BASE_URL}{endpoint}",
+                    headers=self.headers,
+                    json=payload,
+                ) as response,
+            ):
+                status = response.status
+                return {
+                    "success": str(status == 200),
+                    "status_code": str(status),
+                    "message": (
+                        "Success"
+                        if status == 200
+                        else f"Failed with status code: {status}"
+                    ),
+                }
+        except Exception as e:
+            return {
+                "success": "false",
+                "status_code": "500",
+                "message": f"Request failed: {str(e)}",
+            }

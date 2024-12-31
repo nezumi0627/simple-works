@@ -1,51 +1,56 @@
-# works/client.py
+"""Works client class."""
 
 from pathlib import Path
-from typing import Generator, Optional
+from typing import AsyncGenerator, Dict, Optional, Tuple
 
 from works.auth import AuthManager, HeaderManager
-from works.message_handler import receive_messages
-from works.message_sender import MessageSender  # Import MessageSender class
+from works.message_handler import MessageResult, receive_messages
+from works.message_sender import MessageSender
 
 
 class Works:
+    """Works client class."""
+
     def __init__(
         self, input_id: str, password: str, cookie_path: Optional[Path] = None
     ) -> None:
-        """
-        Initialize Works client.
+        """Initialize Works client.
 
         Args:
             input_id (str): User ID for login
             password (str): Password for login
-            cookie_path (Optional[Path]): Path to save/load cookies. Defaults to None.
+            cookie_path (Optional[Path]): Path to save/load cookies.
+            Defaults to None.
         """
-        # Create AuthManager with cookie path
         self.auth_manager = AuthManager(input_id, password)
         if cookie_path:
-            # Generate unique cookie file name based on input_id
             cookie_file = f"cookie_{input_id}.json"
-            # Ensure cookie file is saved in the data directory
             cookie_path = cookie_path / cookie_file
-            # Ensure directory exists and resolve the path properly
             cookie_path.parent.mkdir(parents=True, exist_ok=True)
             self.auth_manager.cookie_path = cookie_path.resolve()
+            self._cleanup_old_cookie(input_id)
 
-            # Clean up any old cookie files in root directory
-            old_cookie = Path(f"cookie_{input_id}.json")
-            if old_cookie.exists():
-                try:
-                    old_cookie.unlink()
-                    print(f"Cleaned up old cookie file: {old_cookie}")
-                except Exception as e:
-                    print(
-                        f"Warning: Could not remove old cookie file {old_cookie}: {e}"
-                    )
-
-        # Initialize HeaderManager
         self.header_manager = HeaderManager(self.auth_manager)
         self.headers = self.header_manager.headers
         self.message_sender = MessageSender(self.header_manager)
+
+    def _cleanup_old_cookie(self, input_id: str) -> Tuple[bool, Optional[str]]:
+        """Clean up old cookie file if exists.
+
+        Args:
+            input_id (str): User ID used for cookie file name
+
+        Returns:
+            Tuple[bool, Optional[str]]: Success status and error message if any
+        """
+        old_cookie = Path(f"cookie_{input_id}.json")
+        if old_cookie.exists():
+            try:
+                old_cookie.unlink()
+                return True, None
+            except Exception as e:
+                return False, str(e)
+        return True, None
 
     def send_message(
         self,
@@ -54,25 +59,38 @@ class Works:
         domain_id: str,
         user_no: str,
         temp_message_id: str,
-    ) -> str:
-        """Send a message to a specified group."""
+    ) -> Dict[str, str]:
+        """Send a message to a specified group (Sync version)."""
         return self.message_sender.send_message(
             group_id, message, domain_id, user_no, temp_message_id
         )
 
-    def send_sticker(
+    async def async_send_message(
+        self,
+        group_id: str,
+        message: str,
+        domain_id: str,
+        user_no: str,
+        temp_message_id: str,
+    ) -> Dict[str, str]:
+        """Send a message to a specified group (Async version)."""
+        return await self.message_sender.async_send_message(
+            group_id, message, domain_id, user_no, temp_message_id
+        )
+
+    async def send_sticker(
         self,
         group_id: str,
         domain_id: str,
         user_no: str,
         temp_message_id: str,
-        stk_type: str = "line",  # Type of the sticker
-        package_id: str = "18832978",  # Package ID
-        sticker_id: str = "485404830",  # Sticker ID
-        stk_opt: str = "",  # Sticker options
-    ) -> str:
+        stk_type: str = "line",
+        package_id: str = "18832978",
+        sticker_id: str = "485404830",
+        stk_opt: str = "",
+    ) -> Dict[str, str]:
         """Send a sticker to a specified group."""
-        return self.message_sender.send_sticker(
+        return await self.message_sender.async_send_sticker(
             group_id,
             domain_id,
             user_no,
@@ -83,7 +101,7 @@ class Works:
             stk_opt,
         )
 
-    def send_custom_log(
+    async def send_custom_log(
         self,
         group_id: str,
         message: str,
@@ -92,9 +110,9 @@ class Works:
         user_no: str,
         temp_message_id: str,
         button_url: str = "https://github.com/nezumi0627",
-    ) -> str:
-        """Send a custom log message with a button to a specified group."""
-        return self.message_sender.send_custom_log(
+    ) -> Dict[str, str]:
+        """Send a custom log message with a button."""
+        return await self.message_sender.async_send_custom_log(
             group_id,
             message,
             button_message,
@@ -104,7 +122,7 @@ class Works:
             button_url,
         )
 
-    def send_add_log(
+    async def send_add_log(
         self,
         group_id: str,
         input_id: str,
@@ -115,9 +133,9 @@ class Works:
         desc: str = "Nezumi-Project2024",
         lang: str = "ja",
         photo_hash: str = "779911d9ab14b9caaec3fd44197a1adc",
-    ) -> str:
+    ) -> Dict[str, str]:
         """Send an additional log message."""
-        return self.message_sender.send_add_log(
+        return await self.message_sender.async_send_add_log(
             group_id,
             input_id,
             domain_id,
@@ -129,19 +147,19 @@ class Works:
             photo_hash,
         )
 
-    def receive_messages(
+    async def receive_messages(
         self,
         domain_id: str,
         user_no: str,
-        db_path: str = "received_messages.db",
-        polling_interval: Optional[int] = 5,  # Default polling interval set to 5
+        polling_interval: int = 5,
         stop_condition: Optional[str] = None,
-    ) -> Generator[dict, None, None]:
-        return receive_messages(
+    ) -> AsyncGenerator[Tuple[MessageResult, Optional[Dict]], None]:
+        """Receive messages from Works using WebSocket."""
+        async for result in receive_messages(
             self.header_manager,
             domain_id,
             user_no,
-            db_path,
             polling_interval,
             stop_condition,
-        )
+        ):
+            yield result

@@ -1,21 +1,24 @@
-# works/database.py
+"""database module."""
+
 import sqlite3
+from typing import Optional
 
 
-def initialize_db(db_path: str) -> str:
-    """
-    Initialize the SQLite database and create the necessary tables.
+def initialize_db(db_path: str) -> Optional[str]:
+    """Initialize the SQLite database and create the necessary tables.
 
     Args:
         db_path (str): The path to the SQLite database.
 
     Returns:
-        str: Success or error message.
+        Optional[str]: None if successful, error message string if failed.
     """
+    conn = None
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute(""" 
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS received_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 message_no TEXT UNIQUE,
@@ -26,8 +29,12 @@ def initialize_db(db_path: str) -> str:
             )
         """)
         conn.commit()
-        return "Database initialized successfully."
+        return None
+
     except sqlite3.Error as e:
-        return f"Database error: {str(e)}"
+        error_msg = f"データベース初期化中にエラーが発生: {str(e)}"
+        return error_msg
+
     finally:
-        conn.close()
+        if conn:
+            conn.close()
